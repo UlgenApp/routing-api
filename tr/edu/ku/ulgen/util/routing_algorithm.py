@@ -1,19 +1,21 @@
-
-import math
-import numpy as np
-from ortools.constraint_solver import routing_enums_pb2
-from ortools.constraint_solver import pywrapcp
-import requests
 import json
+import math
+import os
+
+import numpy as np
+import requests
+from ortools.constraint_solver import pywrapcp
+from ortools.constraint_solver import routing_enums_pb2
 
 supply_need = [0, 100, 200, 50, 150, 1000]
 p_coefficient = 0.3
 d_coefficient = 0.7
+API_key = os.environ['GMAPS_API_KEY']
 
 
 def create_data():
     """Creates the data."""
-    data = {'API_key': 'YOUR_API_KEY',
+    data = {'API_key': API_key,
             # latitude, longitude
             'addresses': ['41.015137,28.979530',  # depot, Istanbul
                           '39.925533,32.866287',  # Ankara
@@ -27,7 +29,6 @@ def create_data():
 
 def create_distance_matrix(data):
     addresses = data["addresses"]
-    API_key = data["API_key"]
     # Distance Matrix API only accepts 100 elements per request, so get rows in multiple requests.
     max_elements = 100
     num_addresses = len(addresses)  # 16 in this example.
@@ -51,7 +52,7 @@ def create_distance_matrix(data):
     return distance_matrix
 
 
-def send_request(origin_addresses, dest_addresses, API_key):
+def send_request(origin_addresses, dest_addresses):
     """ Build and send request for the given origin and destination addresses."""
 
     def build_address_str(addresses):
