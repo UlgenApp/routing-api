@@ -206,9 +206,13 @@ def read_centroid_data(centroid_data):
     return priority_list, data_points
 
 
-def calculate_routing_result(centroid_data, vehicle_count):
+def calculate_routing_result(centroid_data, vehicle_count, depot):
     if centroid_data is None or vehicle_count is None:
         return -1
     else:
         priority, data_points = read_centroid_data(centroid_data)
-        return run_algorithm(priority=priority, vehicle_count=vehicle_count, data_points=data_points)
+        data_points_with_depot = [f"{depot['latitude']},{depot['longitude']}"]
+        data_points_with_depot += data_points
+        priority_with_depot = [0]
+        priority_with_depot += priority
+        return run_algorithm(priority=priority_with_depot, vehicle_count=vehicle_count, data_points=data_points_with_depot)

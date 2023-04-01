@@ -17,7 +17,7 @@ def hello_world():
 @app.post("/api/v1/route")
 async def calculate_root(body: RouteRequest):
     centroid_data = dbscan_clustering(body.location, body.epsilon)
-    routing_response = {"result": calculate_routing_result(centroid_data, body.vehicle_count)}
+    routing_response = {"result": calculate_routing_result(centroid_data, body.vehicle_count, body.depot)}
     return RouteResponse(**routing_response)
 
 
