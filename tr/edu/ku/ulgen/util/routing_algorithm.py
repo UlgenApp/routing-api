@@ -122,33 +122,26 @@ def create_data_model(priority, vehicle_count, data_points):
     return data
 
 
-def print_solution(data, manager, routing, solution):
-    """Prints solution on console."""
-    solution_arr = []
-    print(f'Objective: {solution.ObjectiveValue()}')
-    max_route_distance = 0
+def find_solution(data, manager, routing, solution):
+    """Find solution and returns."""
+    solution_dict = {}
     for vehicle_id in range(data['num_vehicles']):
         index = routing.Start(vehicle_id)
-        plan_output = 'Route for vehicle {}:\n'.format(vehicle_id)
         route_distance = 0
         current_vehicle_route = []
         while not routing.IsEnd(index):
             node = manager.IndexToNode(index)
-            plan_output += ' {} -> '.format(node)
             current_vehicle_route.append(node)
             previous_index = index
             index = solution.Value(routing.NextVar(index))
             route_distance += routing.GetArcCostForVehicle(
                 previous_index, index, vehicle_id)
-        plan_output += '{}\n'.format(manager.IndexToNode(index))
         current_vehicle_route.append(manager.IndexToNode(index))
-        solution_arr.append(
-            {"vehicle " + str(vehicle_id + 1): {"route": current_vehicle_route, "distance_travelled": route_distance}})
-        plan_output += 'Distance of the route: {}m\n'.format(route_distance)
-        print(plan_output)
-        max_route_distance = max(route_distance, max_route_distance)
-    print('Maximum of the route distances: {}m'.format(max_route_distance))
-    print(solution_arr)
+
+        solution_dict["vehicle_" + str(vehicle_id + 1)] = {"route": current_vehicle_route,
+                                                           "distance_travelled": route_distance}
+
+    return solution_dict
 
 
 def run_algorithm(priority, vehicle_count, data_points):
@@ -195,11 +188,11 @@ def run_algorithm(priority, vehicle_count, data_points):
     # Solve the problem.
     solution = routing.SolveWithParameters(search_parameters)
 
-    # Print solution on console.
+    # Returns solution.
     if solution:
-        print_solution(data, manager, routing, solution)
+        return find_solution(data, manager, routing, solution)
     else:
-        print('No solution found !')
+        return -1
 
 
 def read_centroid_data(centroid_data):
@@ -215,17 +208,7 @@ def read_centroid_data(centroid_data):
 
 def calculate_routing_result(centroid_data, vehicle_count):
     if centroid_data is None or vehicle_count is None:
-        print("Invalid input.")
+        return -1
     else:
         priority, data_points = read_centroid_data(centroid_data)
-        run_algorithm(priority=priority, vehicle_count=vehicle_count, data_points=data_points)
-
-
-example_vehicle_count = 4
-example_centroid_data = [{"priority": 0, "latitude": 41.015137, "longitude": 28.979530},
-                             {"priority": 100, "latitude": 39.925533, "longitude": 32.866287},
-                             {"priority": 200, "latitude": 38.423733, "longitude": 27.142826},
-                             {"priority": 50, "latitude": 37.000000, "longitude": 35.321335},
-                             {"priority": 150, "latitude": 37.575275, "longitude": 36.922821},
-                             {"priority": 1000, "latitude": 37.066666, "longitude": 37.383331}]
-calculate_routing_result(example_centroid_data, example_vehicle_count)
+        return run_algorithm(priority=priority, vehicle_count=vehicle_count, data_points=data_points)

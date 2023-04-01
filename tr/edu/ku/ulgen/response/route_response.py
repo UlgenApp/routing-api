@@ -1,6 +1,11 @@
+from typing import List, Dict
 from pydantic import BaseModel
-from typing import List
+
+
+class VehicleRoute(BaseModel):
+    route: List[int]
+    distance_travelled: int
 
 
 class RouteResponse(BaseModel):
-    result: List[dict[str, float]]
+    result: Dict[str, VehicleRoute]
