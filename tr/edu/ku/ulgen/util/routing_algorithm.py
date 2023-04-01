@@ -1,12 +1,4 @@
-"""Simple Vehicles Routing Problem (VRP).
 
-   This is a sample using the routing library python wrapper to solve a VRP
-   problem.
-   A description of the problem can be found here:
-   http://en.wikipedia.org/wiki/Vehicle_routing_problem.
-
-   Distances are in meters.
-"""
 import math
 import numpy as np
 from ortools.constraint_solver import routing_enums_pb2
