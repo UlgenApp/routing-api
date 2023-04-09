@@ -9,9 +9,15 @@ class VehicleRoute(BaseModel):
 
 
 class Location(BaseModel):
+    priority: int
     latitude: float
     longitude: float
 
 
+class Route(BaseModel):
+    centroids: List[Location]
+    route: Dict[str, VehicleRoute]
+
+
 class RouteResponse(BaseModel):
-    result: Dict[str, Union[VehicleRoute, List[Location]]]
+    result: Route
