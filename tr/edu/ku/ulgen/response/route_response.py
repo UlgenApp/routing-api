@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Union
 
 from pydantic import BaseModel
 
@@ -8,5 +8,10 @@ class VehicleRoute(BaseModel):
     distance_travelled: int
 
 
+class Location(BaseModel):
+    latitude: float
+    longitude: float
+
+
 class RouteResponse(BaseModel):
-    result: Dict[str, VehicleRoute]
+    result: Dict[str, Union[VehicleRoute, List[Location]]]
