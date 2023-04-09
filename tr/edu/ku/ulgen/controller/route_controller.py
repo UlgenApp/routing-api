@@ -9,18 +9,14 @@ from tr.edu.ku.ulgen.util.routing_algorithm import calculate_routing_result
 app = FastAPI()
 
 
-@app.get("/")
-def hello_world():
-    return "Hello from Ulgen Team!"
-
-
 @app.post("/api/v1/route")
-async def calculate_root(body: RouteRequest):
+async def calculate_route(body: RouteRequest):
+    print(body)
     centroid_data = dbscan_clustering(body.location, body.epsilon)
     routing_response = {"result": calculate_routing_result(centroid_data, body.vehicle_count, body.depot)}
+    print(routing_response)
     return RouteResponse(**routing_response)
 
 
 if __name__ == '__main__':
     uvicorn.run("route_controller:app", reload=True)
-

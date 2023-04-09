@@ -215,4 +215,5 @@ def calculate_routing_result(centroid_data, vehicle_count, depot):
         data_points_with_depot += data_points
         priority_with_depot = [0]
         priority_with_depot += priority
-        return run_algorithm(priority=priority_with_depot, vehicle_count=vehicle_count, data_points=data_points_with_depot)
+        return run_algorithm(priority=priority_with_depot, vehicle_count=vehicle_count,
+                             data_points=data_points_with_depot)
