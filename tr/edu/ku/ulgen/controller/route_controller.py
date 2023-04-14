@@ -13,7 +13,7 @@ app = FastAPI()
 async def calculate_route(body: RouteRequest):
     centroid_data = dbscan_clustering(body.location, body.epsilon)
     routing_response = {"result": {"centroids": centroid_data,
-                                   "route": calculate_routing_result(centroid_data, body.vehicle_count, body.depot)}}
+                                   "route": calculate_routing_result(body.p_c, body.d_c, centroid_data, body.vehicle_count, body.depot)}}
     return RouteResponse(**routing_response)
 
 
