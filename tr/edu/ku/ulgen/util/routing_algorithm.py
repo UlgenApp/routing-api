@@ -206,10 +206,10 @@ def read_centroid_data(centroid_data):
     return priority_list, data_points
 
 
-def calculate_routing_result(p_c, d_c, centroid_data, vehicle_count, depot):
+def calculate_routing_result(priority_coefficient, distance_coefficient, centroid_data, vehicle_count, depot):
     global p_coefficient, d_coefficient
-    p_coefficient = p_c
-    d_coefficient = d_c
+    p_coefficient = priority_coefficient
+    d_coefficient = distance_coefficient
 
     if centroid_data is None or vehicle_count is None:
         return -1
