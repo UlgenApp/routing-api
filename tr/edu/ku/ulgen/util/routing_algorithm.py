@@ -1,26 +1,45 @@
 import json
 import math
 import os
-import sys
 
 import numpy as np
 import requests
 from ortools.constraint_solver import pywrapcp
 from ortools.constraint_solver import routing_enums_pb2
 
+# Global declarations of the required configurations.
 p_coefficient = 0.3
 d_coefficient = 0.7
 API_key = os.environ['GMAPS_API_KEY']
 
 
 def create_data(data_points):
-    """Creates the data."""
+    """
+    Create data for distance matrix.
+
+    :param data_points: A list of strings containing the latitude and longitude of each location.
+    :type data_points: list
+
+    :return: A dictionary containing the API key and addresses.
+    :rtype: dict
+    """
+
     data = {'API_key': API_key,
             'addresses': data_points}
     return data
 
 
 def create_distance_matrix(data):
+    """
+    Create a distance matrix using the Google Maps API.
+
+    :param data: A dictionary containing the API key and addresses.
+    :type data: dict
+
+    :return: A list of lists representing the distance matrix, or -2 if an error occurs.
+    :rtype: list or int
+    """
+
     addresses = data["addresses"]
     # Distance Matrix API only accepts 100 elements per request, so get rows in multiple requests.
     max_elements = 100
@@ -50,9 +69,29 @@ def create_distance_matrix(data):
 
 
 def send_request(origin_addresses, dest_addresses):
-    """ Build and send request for the given origin and destination addresses."""
+    """
+    Send a request to the Google Maps Distance Matrix API and return the response.
+
+    :param origin_addresses: A list of origin addresses.
+    :type origin_addresses: list
+    :param dest_addresses: A list of destination addresses.
+    :type dest_addresses: list
+
+    :return: A dictionary representing the JSON response from the API.
+    :rtype: dict
+    """
 
     def build_address_str(addresses):
+        """
+        Build a pipe-separated string of addresses.
+
+        :param addresses: A list of addresses.
+        :type addresses: list
+
+        :return: A pipe-separated string of addresses.
+        :rtype: str
+        """
+
         # Build a pipe-separated string of addresses
         address_str = ''
         for i in range(len(addresses) - 1):
@@ -72,6 +111,16 @@ def send_request(origin_addresses, dest_addresses):
 
 
 def build_distance_matrix(response):
+    """
+    Build a distance matrix from the API response.
+
+    :param response: A dictionary representing the JSON response from the API.
+    :type response: dict
+
+    :return: A list of lists representing the distance matrix, or -2 if an error occurs.
+    :rtype: list
+    """
+
     distance_matrix = []
     for row in response['rows']:
         try:
@@ -84,7 +133,16 @@ def build_distance_matrix(response):
 
 
 def construct_priority_vector(priority):
-    """Constructs priority vector using the supply need"""
+    """
+    Construct a priority vector.
+
+    :param priority: A list of integers representing the priority of each location.
+    :type priority: list
+
+    :return: A NumPy array representing the priority vector.
+    :rtype: numpy.ndarray
+    """
+
     total_supply_need = 0
     priority_vector = []
 
@@ -100,7 +158,18 @@ def construct_priority_vector(priority):
 
 
 def construct_prioritized_distance_matrix(distance_matrix, priority_vector):
-    """Constructs the prioritized data matrix using priority vector and distance matrix"""
+    """
+    Construct a prioritized distance matrix.
+
+    :param distance_matrix: A NumPy array representing the distance matrix.
+    :type distance_matrix: numpy.ndarray
+    :param priority_vector: A NumPy array representing the priority vector.
+    :type priority_vector: numpy.ndarray
+
+    :return: A NumPy array representing the prioritized distance matrix.
+    :rtype: numpy.ndarray
+    """
+
     current_row = 0
     prioritized_distance_matrix = []
     for row in distance_matrix:
@@ -121,7 +190,20 @@ def construct_prioritized_distance_matrix(distance_matrix, priority_vector):
 
 
 def create_data_model(priority, vehicle_count, data_points):
-    """Stores the data for the problem."""
+    """
+    Create a data model for the vehicle routing problem.
+
+    :param priority: A list of integers representing the priority of each location.
+    :type priority: list
+    :param vehicle_count: The number of vehicles.
+    :type vehicle_count: int
+    :param data_points: A list of strings containing the latitude and longitude of each location.
+    :type data_points: list
+
+    :return: A dictionary representing the data model, or -2 if an error occurs.
+    :rtype: dict
+    """
+
     data = create_data(data_points)
     distance_matrix = create_distance_matrix(data)
     if distance_matrix == -2:
@@ -146,15 +228,28 @@ def create_data_model(priority, vehicle_count, data_points):
         tmp_sum -= tmp_capacity
         tmp_vehicle_count -= 1
 
-    print(vehicle_capacities)
-
     data = {'distance_matrix': prioritized_distance_matrix, 'demands': demands,
             'vehicle_capacities': vehicle_capacities, 'num_vehicles': vehicle_count, 'depot': 0}
     return data
 
 
 def find_solution(data, manager, routing, solution):
-    """Find solution and returns."""
+    """
+    Find the solution for the vehicle routing problem.
+
+    :param data: A dictionary representing the data model.
+    :type data: dict
+    :param manager: The routing index manager.
+    :type manager: pywrapcp.RoutingIndexManager
+    :param routing: The routing model.
+    :type routing: pywrapcp.RoutingModel
+    :param solution: The solution of the routing problem.
+    :type solution: pywrapcp.Assignment
+
+    :return: A dictionary representing the solution, including routes and distances traveled.
+    :rtype: dict
+    """
+
     solution_dict = {}
     for vehicle_id in range(data['num_vehicles']):
         index = routing.Start(vehicle_id)
@@ -176,7 +271,21 @@ def find_solution(data, manager, routing, solution):
 
 
 def run_algorithm(priority, vehicle_count, data_points):
-    """Entry point of the program."""
+    """
+    Run the vehicle routing algorithm.
+
+    :param priority: A list of integers representing the priority of each location.
+    :type priority: list
+    :param vehicle_count: The number of vehicles.
+    :type vehicle_count: int
+    :param data_points: A list of strings containing the latitude and longitude of each location.
+    :type data_points: list
+
+    :return: A dictionary representing the solution, including routes and distances traveled, or -1 if no solution is found,
+    or -2 if an error occurs.
+    :rtype: dict or int
+    """
+
     # Instantiate the data problem.
     data = create_data_model(priority=priority, vehicle_count=vehicle_count, data_points=data_points)
     if data == -2:
@@ -190,7 +299,14 @@ def run_algorithm(priority, vehicle_count, data_points):
 
     # Create and register a transit callback.
     def distance_callback(from_index, to_index):
-        """Returns the distance between the two nodes."""
+        """
+        Returns the distance between two nodes.
+
+        :param from_index: The index of the origin node.
+        :param to_index: The index of the destination node.
+        :return: The distance between the two nodes.
+        """
+
         # Convert from routing variable Index to distance matrix NodeIndex.
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
@@ -199,7 +315,13 @@ def run_algorithm(priority, vehicle_count, data_points):
         # Add Capacity constraint.
 
     def demand_callback(from_index):
-        """Returns the demand of the node."""
+        """
+        Returns the demand of a node.
+
+        :param from_index: The index of the node.
+        :return: The demand of the node.
+        """
+
         # Convert from routing variable Index to demands NodeIndex.
         from_node = manager.IndexToNode(from_index)
         return data['demands'][from_node]
@@ -238,6 +360,13 @@ def run_algorithm(priority, vehicle_count, data_points):
 
 
 def read_centroid_data(centroid_data):
+    """
+    Read centroid data and extract priorities and data points.
+
+    :param centroid_data: A list of dictionaries containing latitude, longitude, and priority of each location.
+    :return: A tuple containing two lists: one with priorities and the other with data points (latitude and longitude).
+    """
+
     priority_list = []
     data_points = []
 
@@ -249,6 +378,22 @@ def read_centroid_data(centroid_data):
 
 
 def calculate_routing_result(priority_coefficient, distance_coefficient, centroid_data, vehicle_count, depot):
+    """
+    Calculate the routing result using the vehicle routing algorithm.
+    :param priority_coefficient: The weight given to priority in the objective function.
+    :type priority_coefficient: float
+    :param distance_coefficient: The weight given to distance in the objective function.
+    :type distance_coefficient: float
+    :param centroid_data: A list of dictionaries containing latitude, longitude, and priority of each location.
+    :type centroid_data: list
+    :param vehicle_count: The number of vehicles.
+    :type vehicle_count: int
+    :param depot: A dictionary containing the latitude and longitude of the depot.
+    :type depot: dict
+
+    :return: A dictionary representing the solution, including routes and distances traveled, or -1 if no solution is found.
+    :rtype: dict or int
+    """
     global p_coefficient, d_coefficient
     p_coefficient = priority_coefficient
     d_coefficient = distance_coefficient

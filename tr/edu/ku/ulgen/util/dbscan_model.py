@@ -3,6 +3,18 @@ from sklearn.cluster import DBSCAN
 
 
 def dbscan_clustering(location_coordinates_dict, eps):
+    """
+    Perform DBSCAN clustering on location coordinates and return cluster centroids and sizes.
+
+    :param location_coordinates_dict: A list of dictionaries containing latitude and longitude of locations.
+    :type location_coordinates_dict: list
+    :param eps: The maximum distance between two samples for one to be considered as in the neighborhood of the other.
+    :type eps: float
+
+    :return: A list of dictionaries containing priority, latitude, and longitude for each cluster.
+    :rtype: list
+    """
+
     location_coordinates = np.array([[d['latitude'], d['longitude']] for d in location_coordinates_dict])
 
     dbscan = DBSCAN(eps=eps, min_samples=1)
@@ -26,6 +38,18 @@ def dbscan_clustering(location_coordinates_dict, eps):
 
 
 def compute_centroids(X, labels):
+    """
+    Compute the centroids and sizes of the clusters.
+
+    :param X: A 2D array containing the latitude and longitude of the locations.
+    :type X: numpy.array
+    :param labels: A 1D array containing the cluster labels for each location.
+    :type labels: numpy.array
+
+    :return: A tuple containing two dictionaries: one containing the cluster centroids, and one containing the sizes of each cluster.
+    :rtype: tuple
+    """
+
     unique_labels = set(labels)
     centroids = {}
     cluster_sizes = {}
