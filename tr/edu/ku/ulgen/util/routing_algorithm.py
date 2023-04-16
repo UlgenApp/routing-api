@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import sys
 
 import numpy as np
 import requests
@@ -31,16 +32,20 @@ def create_distance_matrix(data):
     dest_addresses = addresses
     distance_matrix = []
     # Send q requests, returning max_rows rows per request.
-    for i in range(q):
-        origin_addresses = addresses[i * max_rows: (i + 1) * max_rows]
-        response = send_request(origin_addresses, dest_addresses)
-        distance_matrix += build_distance_matrix(response)
+    try:
+        for i in range(q):
+            origin_addresses = addresses[i * max_rows: (i + 1) * max_rows]
+            response = send_request(origin_addresses, dest_addresses)
+            distance_matrix += build_distance_matrix(response)
 
-    # Get the remaining r rows, if necessary.
-    if r > 0:
-        origin_addresses = addresses[q * max_rows: q * max_rows + r]
-        response = send_request(origin_addresses, dest_addresses)
-        distance_matrix += build_distance_matrix(response)
+        # Get the remaining r rows, if necessary.
+        if r > 0:
+            origin_addresses = addresses[q * max_rows: q * max_rows + r]
+            response = send_request(origin_addresses, dest_addresses)
+            distance_matrix += build_distance_matrix(response)
+    except TypeError:
+        return -2
+
     return distance_matrix
 
 
@@ -69,8 +74,12 @@ def send_request(origin_addresses, dest_addresses):
 def build_distance_matrix(response):
     distance_matrix = []
     for row in response['rows']:
-        row_list = [row['elements'][j]['distance']['value'] for j in range(len(row['elements']))]
-        distance_matrix.append(row_list)
+        try:
+            row_list = [row['elements'][j]['distance']['value'] for j in range(len(row['elements']))]
+            distance_matrix.append(row_list)
+        except KeyError:
+            return -2
+
     return distance_matrix
 
 
@@ -114,7 +123,12 @@ def construct_prioritized_distance_matrix(distance_matrix, priority_vector):
 def create_data_model(priority, vehicle_count, data_points):
     """Stores the data for the problem."""
     data = create_data(data_points)
-    distance_matrix = np.array(create_distance_matrix(data))
+    distance_matrix = create_distance_matrix(data)
+    if distance_matrix == -2:
+        return distance_matrix
+    else:
+        distance_matrix = np.array(distance_matrix)
+
     priority_vector = construct_priority_vector(priority)
     prioritized_distance_matrix = construct_prioritized_distance_matrix(distance_matrix * d_coefficient,
                                                                         priority_vector)
@@ -165,7 +179,8 @@ def run_algorithm(priority, vehicle_count, data_points):
     """Entry point of the program."""
     # Instantiate the data problem.
     data = create_data_model(priority=priority, vehicle_count=vehicle_count, data_points=data_points)
-
+    if data == -2:
+        return data
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['distance_matrix']),
                                            data['num_vehicles'], data['depot'])
