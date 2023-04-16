@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import sys
 
 import numpy as np
 import requests
@@ -31,16 +32,20 @@ def create_distance_matrix(data):
     dest_addresses = addresses
     distance_matrix = []
     # Send q requests, returning max_rows rows per request.
-    for i in range(q):
-        origin_addresses = addresses[i * max_rows: (i + 1) * max_rows]
-        response = send_request(origin_addresses, dest_addresses)
-        distance_matrix += build_distance_matrix(response)
+    try:
+        for i in range(q):
+            origin_addresses = addresses[i * max_rows: (i + 1) * max_rows]
+            response = send_request(origin_addresses, dest_addresses)
+            distance_matrix += build_distance_matrix(response)
 
-    # Get the remaining r rows, if necessary.
-    if r > 0:
-        origin_addresses = addresses[q * max_rows: q * max_rows + r]
-        response = send_request(origin_addresses, dest_addresses)
-        distance_matrix += build_distance_matrix(response)
+        # Get the remaining r rows, if necessary.
+        if r > 0:
+            origin_addresses = addresses[q * max_rows: q * max_rows + r]
+            response = send_request(origin_addresses, dest_addresses)
+            distance_matrix += build_distance_matrix(response)
+    except TypeError:
+        return -2
+
     return distance_matrix
 
 
@@ -69,8 +74,12 @@ def send_request(origin_addresses, dest_addresses):
 def build_distance_matrix(response):
     distance_matrix = []
     for row in response['rows']:
-        row_list = [row['elements'][j]['distance']['value'] for j in range(len(row['elements']))]
-        distance_matrix.append(row_list)
+        try:
+            row_list = [row['elements'][j]['distance']['value'] for j in range(len(row['elements']))]
+            distance_matrix.append(row_list)
+        except KeyError:
+            return -2
+
     return distance_matrix
 
 
@@ -114,11 +123,33 @@ def construct_prioritized_distance_matrix(distance_matrix, priority_vector):
 def create_data_model(priority, vehicle_count, data_points):
     """Stores the data for the problem."""
     data = create_data(data_points)
-    distance_matrix = np.array(create_distance_matrix(data))
+    distance_matrix = create_distance_matrix(data)
+    if distance_matrix == -2:
+        return distance_matrix
+    else:
+        distance_matrix = np.array(distance_matrix)
+
     priority_vector = construct_priority_vector(priority)
     prioritized_distance_matrix = construct_prioritized_distance_matrix(distance_matrix * d_coefficient,
                                                                         priority_vector)
-    data = {'distance_matrix': prioritized_distance_matrix, 'num_vehicles': vehicle_count, 'depot': 0}
+    location_count = len(priority_vector)
+    demands = [1] * location_count
+    demands[0] = 0
+
+    tmp_sum = location_count - 1
+    tmp_vehicle_count = vehicle_count
+    vehicle_capacities = []
+
+    while tmp_vehicle_count > 0:
+        tmp_capacity = math.floor(tmp_sum / tmp_vehicle_count)
+        vehicle_capacities.append(tmp_capacity)
+        tmp_sum -= tmp_capacity
+        tmp_vehicle_count -= 1
+
+    print(vehicle_capacities)
+
+    data = {'distance_matrix': prioritized_distance_matrix, 'demands': demands,
+            'vehicle_capacities': vehicle_capacities, 'num_vehicles': vehicle_count, 'depot': 0}
     return data
 
 
@@ -148,7 +179,8 @@ def run_algorithm(priority, vehicle_count, data_points):
     """Entry point of the program."""
     # Instantiate the data problem.
     data = create_data_model(priority=priority, vehicle_count=vehicle_count, data_points=data_points)
-
+    if data == -2:
+        return data
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['distance_matrix']),
                                            data['num_vehicles'], data['depot'])
@@ -164,26 +196,36 @@ def run_algorithm(priority, vehicle_count, data_points):
         to_node = manager.IndexToNode(to_index)
         return data['distance_matrix'][from_node][to_node]
 
+        # Add Capacity constraint.
+
+    def demand_callback(from_index):
+        """Returns the demand of the node."""
+        # Convert from routing variable Index to demands NodeIndex.
+        from_node = manager.IndexToNode(from_index)
+        return data['demands'][from_node]
+
     transit_callback_index = routing.RegisterTransitCallback(distance_callback)
 
     # Define cost of each arc.
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
-    # Add Distance constraint.
-    dimension_name = 'Distance'
-    routing.AddDimension(
-        transit_callback_index,
-        0,  # no slack
-        60000000,  # vehicle maximum travel distance
+    demand_callback_index = routing.RegisterUnaryTransitCallback(
+        demand_callback)
+
+    routing.AddDimensionWithVehicleCapacity(
+        demand_callback_index,
+        0,  # null capacity slack
+        data['vehicle_capacities'],  # vehicle maximum capacities
         True,  # start cumul to zero
-        dimension_name)
-    distance_dimension = routing.GetDimensionOrDie(dimension_name)
-    distance_dimension.SetGlobalSpanCostCoefficient(100)
+        'Capacity')
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
+    search_parameters.local_search_metaheuristic = (
+        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
+    search_parameters.time_limit.FromSeconds(1)
 
     # Solve the problem.
     solution = routing.SolveWithParameters(search_parameters)
