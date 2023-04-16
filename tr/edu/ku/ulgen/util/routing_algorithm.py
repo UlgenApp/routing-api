@@ -380,6 +380,7 @@ def read_centroid_data(centroid_data):
 def calculate_routing_result(priority_coefficient, distance_coefficient, centroid_data, vehicle_count, depot):
     """
     Calculate the routing result using the vehicle routing algorithm.
+
     :param priority_coefficient: The weight given to priority in the objective function.
     :type priority_coefficient: float
     :param distance_coefficient: The weight given to distance in the objective function.
