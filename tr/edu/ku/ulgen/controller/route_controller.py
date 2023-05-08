@@ -1,7 +1,9 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException
 
+from tr.edu.ku.ulgen.request.heatmap_request import HeatmapRequest
 from tr.edu.ku.ulgen.request.route_request import RouteRequest
+from tr.edu.ku.ulgen.response.heatmap_response import HeatmapResponse
 from tr.edu.ku.ulgen.response.route_response import RouteResponse
 from tr.edu.ku.ulgen.util.dbscan_model import dbscan_clustering
 from tr.edu.ku.ulgen.util.routing_algorithm import calculate_routing_result
@@ -31,7 +33,28 @@ async def calculate_route(body: RouteRequest):
 
     routing_response = {"result": {"centroids": centroid_data,
                                    "route": route}}
+
     return RouteResponse(**routing_response)
+
+
+@app.post("/api/v1/heatmap")
+async def calculate_heatmap(body: HeatmapRequest):
+    """
+    Calculates the information to draw a Heatmap of a location.
+
+    :param body: A HeatmapRequest object that contains information about the location of the points to be shown,
+                 as well as parameter such as the epsilon value.
+    :type body: tr.edu.ku.ulgen.request.heatmap_request.HeatmapRequest
+
+    :return: A HeatmapResponse object that contains the centroid data.
+    :rtype: tr.edu.ku.ulgen.response.heatmap_response.HeatmapResponse
+    """
+
+    centroid_data = dbscan_clustering(body.location, body.epsilon)
+
+    heatmap_response = {"result": {"centroids": centroid_data}}
+
+    return HeatmapResponse(**heatmap_response)
 
 
 if __name__ == '__main__':
